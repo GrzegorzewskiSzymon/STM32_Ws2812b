@@ -1,0 +1,16 @@
+.cproject
+.project
+.settings/
+Debug/
+Inc/cmsis_compiler.h
+Inc/cmsis_gcc.h
+Inc/cmsis_version.h
+Inc/core_cm4.h
+Inc/mpu_armv7.h
+Inc/stm32g431xx.h
+Inc/system_stm32g4xx.h
+Project_02_Ws2812b_Tim Debug.launch
+STM32G431RBTX_FLASH.ld
+Src/syscalls.c
+Src/sysmem.c
+Startup/
