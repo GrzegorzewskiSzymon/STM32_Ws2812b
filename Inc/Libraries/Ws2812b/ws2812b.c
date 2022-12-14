@@ -8,19 +8,45 @@
 #include "stm32g431xx.h"
 #include "ws2812b.h"
 
+void InterruptSetup()
+{
+
+	NVIC_EnableIRQ(TIM2_IRQn); //Enable interrupt from TIM2
+//	NVIC_SetVector(TIM2_IRQn, (uint32_t)&TIM2_IRQHandler);
+
+}
+
+void TIM2_IRQHandler()
+{
+	TIM2->SR &= ~TIM_SR_UIF;
+	if(GPIOA->ODR & (1<<5))
+	{
+		//PA5 RESET PIN
+		GPIOA->BSRR = 1<<21;
+	}
+	else
+	{
+		//PA5 SET PIN
+		GPIOA->BSRR = (1<<5);
+	}
+}
+
 void GPIOA_Setup()
 {
 	//Enable peripheries AHB2
 	RCC->AHB2ENR |= 1 ;//bit0 is responsible for GPIOA
 
+	//PA5
+	GPIOA->MODER =  0xABFFF7FF;// MODE5[0;1] -> General purpose output mode
+
 	//PA8 as TIM1_CH1
 	GPIOA->MODER &= ~(1<<16); //  MODE8 [10]   -> Alternate function mode
 	GPIOA->AFR[1] |= (6<<0);  //  AFSEL1[0001] -> AF1
+
 }
 
 void TIM1_Setup()
 {
-
 	 RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;//Enable clock
 
 	 TIM1->ARR = 20; /* Set the Autoreload value */
@@ -52,17 +78,16 @@ void TIM2_Setup()
 
 
 	/*Frq = [CLK/(PSC+1)]/[ARR]
-	 *Frq = [17000000/(99+1)]/[3000]
-	 *Frq = 566 */
+	 * ~806kHz
+	 * */
 	TIM2->CCR1 = 10;
 	TIM2->CNT =  0;
 	TIM2->ARR =  20;
 
 	TIM2->CCER |= (1<<0);//Capture/Compare 1 output enable
 
-//	TIM2->CR1 |= (1<<0);//Counter enabled
-
 	//Master mode selection
 	TIM2->CR2 |= (4<<4); //Compare - tim_oc1refc signal is used as trigger output (tim_trgo)
-}
 
+	TIM2->DIER |= (1<<TIM_DIER_UIE_Pos);//Update interrupt enable
+}

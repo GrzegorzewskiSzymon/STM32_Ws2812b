@@ -9,6 +9,7 @@
 #define WS2812B_WS2812B_H_
 
 
+void InterruptSetup();
 void GPIOA_Setup();
 void TIM1_Setup();
 void TIM2_Setup();
