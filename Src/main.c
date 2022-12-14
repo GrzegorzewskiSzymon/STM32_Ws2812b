@@ -9,7 +9,7 @@ int main(void)
 	GPIOA_Setup();
 	TIM1_Setup();
 	TIM2_Setup();
-	InterruptSetup();
+	Interrupt_Setup();
 	TIM1->CR1 |= (1<<TIM_CR1_CEN_Pos);//Counter enabled
 	TIM2->CR1 |= (1<<TIM_CR1_CEN_Pos);//Counter enabled
 

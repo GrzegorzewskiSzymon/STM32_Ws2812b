@@ -8,7 +8,7 @@
 #include "stm32g431xx.h"
 #include "ws2812b.h"
 
-void InterruptSetup()
+void Interrupt_Setup()
 {
 
 	NVIC_EnableIRQ(TIM2_IRQn); //Enable interrupt from TIM2
@@ -19,16 +19,8 @@ void InterruptSetup()
 void TIM2_IRQHandler()
 {
 	TIM2->SR &= ~TIM_SR_UIF;
-	if(GPIOA->ODR & (1<<5))
-	{
-		//PA5 RESET PIN
-		GPIOA->BSRR = 1<<21;
-	}
-	else
-	{
-		//PA5 SET PIN
-		GPIOA->BSRR = (1<<5);
-	}
+
+
 }
 
 void GPIOA_Setup()
