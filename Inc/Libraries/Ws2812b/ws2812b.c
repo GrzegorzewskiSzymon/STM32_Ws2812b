@@ -16,13 +16,94 @@ void Interrupt_Setup()
 
 }
 
+
+
+uint8_t nrOfactualBitToSend;
+uint16_t nrOfLedsToUpdate = 1;
+uint16_t nrOfSendingLed = 0;
+uint32_t pixel_G_R_B;
+
+uint8_t Ws2812b_setLed(Ws2812b_Pixel *pixel, uint16_t cnt)
+{
+	//Check if timer is still running
+	if(TIM2->CR1 & TIM_CR1_CEN)
+		return TIMER_BUSY;
+
+	BitReversalGRB(pixel, cnt);
+
+	//Start timer
+	nrOfLedsToUpdate = cnt;
+	START_TIM2;
+
+	return READY;
+}
+
+
+void BitReversalGRB(Ws2812b_Pixel *pix, uint16_t cnt)
+{
+	uint16_t pixNr =0;
+	uint8_t tmp_r = 0, tmp_g = 0, tmp_b = 0;
+	uint8_t	i = 0;
+
+
+	while(pixNr < cnt)
+	{
+		while(i<8)
+		{
+			if(pix[pixNr].r & (1<<i))
+				tmp_r |= (1<<(7-i));
+			if(pix[pixNr].g & (1<<i))
+				tmp_g |= (1<<(7-i));
+			if(pix[pixNr].b & (1<<i))
+				tmp_b |= (1<<(7-i));
+			i++;
+		}
+		pix[pixNr].r = tmp_r;
+		tmp_r = 0;
+		pix[pixNr].g = tmp_g;
+		tmp_g = 0;
+		pix[pixNr].b = tmp_b;
+		tmp_b = 0;
+
+		pixNr++;
+		i=0;
+	}
+}
+
 void TIM2_IRQHandler()
 {
 	TIM2->SR &= ~TIM_SR_UIF;
 
+	pixel_G_R_B = led[nrOfSendingLed].g | (led[nrOfSendingLed].r << 8) | (led[nrOfSendingLed].b << 16);
 
+	if (nrOfSendingLed < nrOfLedsToUpdate)
+	{
+
+		if (pixel_G_R_B & (1<<nrOfactualBitToSend))
+		{
+			SEND1;
+			TIM1->CR1 |= (1 << TIM_CR1_CEN_Pos);
+		}
+		else
+		{
+			SEND0;
+			TIM1->CR1 |= (1 << TIM_CR1_CEN_Pos);
+		}
+
+		if (nrOfactualBitToSend == 24)
+		{
+			nrOfactualBitToSend = 0;
+			nrOfSendingLed++;
+		}
+		nrOfactualBitToSend++;
+
+	}
+	if(nrOfSendingLed >= nrOfLedsToUpdate)
+	{
+		STOP_TIM2;
+		return;
+	}
 }
-
 void GPIOA_Setup()
 {
 	//Enable peripheries AHB2
@@ -34,6 +115,7 @@ void GPIOA_Setup()
 	//PA8 as TIM1_CH1
 	GPIOA->MODER &= ~(1<<16); //  MODE8 [10]   -> Alternate function mode
 	GPIOA->AFR[1] |= (6<<0);  //  AFSEL1[0001] -> AF1
+	GPIOA->OSPEEDR |= (1<<16);
 
 }
 
@@ -46,16 +128,18 @@ void TIM1_Setup()
 	 TIM1->PSC = 9; /* Set the Prescaler value */
 //	 TIM1->RCR = 10 - 1; /* Set the Repetition counter value */
 	 TIM1->CR1 |= TIM_CR1_OPM; /* Select the OPM Mode */
-	 TIM1->CCMR1 |= (7<<TIM_CCMR1_OC1M_Pos);//PWM mode 2
+	 TIM1->CCMR1 |= (6<<TIM_CCMR1_OC1M_Pos) | (0<<16);//
 	 TIM1->CCER = TIM_CCER_CC1E; /* Enable the Compare output channel 1 */
+	 TIM1->CCER |= (1<<TIM_CCER_CC1P_Pos);//inverting pin output
 	 TIM1->BDTR |= TIM_BDTR_MOE; //Main output enable
+	 TIM1->EGR |= (1<<TIM_EGR_UG_Pos);
 
 	 //Slave mode selection [SMS]
-	 TIM1->SMCR |= (6<<0); /* Trigger Mode - The counter starts at a rising edge of the trigger tim_trgi
-	 (but it is not reset). Only the start of the counter is controlled.*/
+//	 TIM1->SMCR |= (6<<0); /* Trigger Mode - The counter starts at a rising edge of the trigger tim_trgi
+//	 (but it is not reset). Only the start of the counter is controlled.*/
 
 	 //Trigger selection
-	 TIM1->SMCR |= (1<<4);// Internal Trigger 1 (tim_itr1)
+//	 TIM1->SMCR |= (1<<4);// Internal Trigger 1 (tim_itr1)
 
 }
 
@@ -66,15 +150,15 @@ void TIM2_Setup()
 
 	//TIM2_CH1 is PA0 in AF1
 	TIM2->CCMR1 |= (6<<4);  //OC1M[0;1;1;0] -> PWM mode 1
-	TIM2->PSC = 9;
 
 
 	/*Frq = [CLK/(PSC+1)]/[ARR]
-	 * ~806kHz
+	 * ~708kHz
 	 * */
-	TIM2->CCR1 = 10;
+	TIM2->PSC = 9;
+	TIM2->CCR1 = 9;
 	TIM2->CNT =  0;
-	TIM2->ARR =  20;
+	TIM2->ARR =  24;
 
 	TIM2->CCER |= (1<<0);//Capture/Compare 1 output enable
 
