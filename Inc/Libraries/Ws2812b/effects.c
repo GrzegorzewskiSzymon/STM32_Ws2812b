@@ -22,7 +22,6 @@ void Rainbow_SetupColors(Ws2812b_Pixel *color)
     color[7].r=100; color[7].g=000; color[7].b=255;//violet
 }
 
-
 void Rainbow(Ws2812b_Pixel *pixel)
 {
 

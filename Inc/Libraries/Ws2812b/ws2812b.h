@@ -13,7 +13,7 @@
 #define SEND1 TIM1->CCR1 = 8; //output pin is inverted
 #define SEND0 TIM1->CCR1 = 14;
 
-#define  LED_CNT 100
+#define LED_CNT 100
 
 typedef struct
 {

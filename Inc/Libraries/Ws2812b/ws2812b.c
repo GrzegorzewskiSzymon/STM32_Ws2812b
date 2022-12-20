@@ -11,9 +11,8 @@
 
 void Interrupt_Setup()
 {
-	NVIC_EnableIRQ(TIM2_IRQn); //Enable interrupt from TIM2
-//	NVIC_SetVector(TIM2_IRQn, (uint32_t)&TIM2_IRQHandler);
-
+	NVIC_EnableIRQ(TIM2_IRQn);    //Enable interrupt from TIM2
+	NVIC_EnableIRQ(SysTick_IRQn); //Enable interrupt from Systick
 }
 
 uint8_t nrOfactualBitToSend;
@@ -53,7 +52,6 @@ void BitReversalGRB(Ws2812b_Pixel *pix, uint16_t cnt)
 	uint8_t tmp_r = 0, tmp_g = 0, tmp_b = 0;
 	uint8_t	i = 0;
 
-
 	while(pixNr < cnt)
 	{
 		while(i<8)
@@ -80,7 +78,7 @@ void BitReversalGRB(Ws2812b_Pixel *pix, uint16_t cnt)
 
 void TIM2_IRQHandler()
 {
-	TIM2->SR &= ~TIM_SR_UIF;
+	TIM2->SR &= ~TIM_SR_UIF;//Reset flag
 
 	pixel_G_R_B = led_reversed[nrOfSendingLed].g | (led_reversed[nrOfSendingLed].r << 8) | (led_reversed[nrOfSendingLed].b << 16);
 
@@ -106,6 +104,7 @@ void TIM2_IRQHandler()
 		}
 
 	}
+
 	if(nrOfSendingLed >= nrOfLedsToUpdate)
 	{
 		nrOfSendingLed = 0;
