@@ -22,18 +22,6 @@ uint32_t pixel_G_R_B;
 
 uint8_t Ws2812b_setLed(Ws2812b_Pixel *pixel, uint16_t cnt)
 {
-	//Check if timer is still running
-	if(TIM2->CR1 & TIM_CR1_CEN)
-	{
-		return TIMER_BUSY;
-	}
-	else if( (timer2.flag == TIMER_IDLE_BETWEEN_CYCLES) && (ms - timer2.ms_end_of_cycle < 1))
-	{
-		return TIMER_IDLE_BETWEEN_CYCLES;
-	}
-
-	timer2.flag = TIMER_READY;
-
 
 	BitReversalGRB(pixel, cnt);
 

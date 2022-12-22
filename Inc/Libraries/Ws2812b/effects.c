@@ -24,10 +24,13 @@ void Rainbow_SetupColors(Ws2812b_Pixel *color)
 
 void Rainbow(Ws2812b_Pixel *pixel)
 {
-
-	//Check if timer is still running
-	if((TIM2->CR1 & TIM_CR1_CEN))
+	//fast way to check if timer is ready
+	if( (TIM2->CR1 & TIM_CR1_CEN) || ((timer2.flag == TIMER_IDLE_BETWEEN_CYCLES) && (ms - timer2.ms_end_of_cycle < 1)) )
+	{
 		return;
+	}
+	timer2.flag = TIMER_READY;
+
 
 	static uint8_t j = 1;
 	static uint8_t k = 1;
