@@ -44,7 +44,7 @@ uint8_t Ws2812b_setLed(Ws2812b_Pixel *pixel, uint16_t cnt)
 	return TIMER_READY;
 }
 
-Ws2812b_Pixel led_reversed[LED_CNT];
+uint32_t reversed_GRB[LED_CNT];
 
 void BitReversalGRB(Ws2812b_Pixel *pix, uint16_t cnt)
 {
@@ -64,11 +64,9 @@ void BitReversalGRB(Ws2812b_Pixel *pix, uint16_t cnt)
 				tmp_b += (1<<(7-i));
 			i++;
 		}
-		led_reversed[pixNr].r = tmp_r;
+		reversed_GRB[pixNr] = tmp_g | (tmp_r << 8) | (tmp_b << 16);
 		tmp_r = 0;
-		led_reversed[pixNr].g = tmp_g;
 		tmp_g = 0;
-		led_reversed[pixNr].b = tmp_b;
 		tmp_b = 0;
 
 		pixNr++;
@@ -80,12 +78,10 @@ void TIM2_IRQHandler()
 {
 	TIM2->SR &= ~TIM_SR_UIF;//Reset flag
 
-	pixel_G_R_B = led_reversed[nrOfSendingLed].g | (led_reversed[nrOfSendingLed].r << 8) | (led_reversed[nrOfSendingLed].b << 16);
-
 	if (nrOfSendingLed < nrOfLedsToUpdate)
 	{
 
-		if (pixel_G_R_B & (1<<nrOfactualBitToSend))
+		if (reversed_GRB[nrOfSendingLed] & (1<<nrOfactualBitToSend))
 		{
 			SEND1;
 			TIM1->CR1 |= (1 << TIM_CR1_CEN_Pos);
