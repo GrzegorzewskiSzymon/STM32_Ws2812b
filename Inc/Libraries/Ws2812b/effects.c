@@ -7,8 +7,8 @@
 #include <stdint.h>
 #include "stm32g431xx.h"
 #include "ws2812b.h"
-#include "../Utils/utils.h"
 #include "effects.h"
+#include "../RegistersConfig/RegistersConfig.h"
 
 void Rainbow_SetupColors(Ws2812b_Pixel *color)
 {

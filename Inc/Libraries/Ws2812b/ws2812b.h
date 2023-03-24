@@ -26,14 +26,12 @@ extern Ws2812b_Pixel led[LED_CNT];
 extern Ws2812b_Pixel led_reversed[LED_CNT];
 extern Ws2812b_Pixel colors[8];
 
-
 typedef enum{
 	TIMER_READY= 0,
 	TIMER_BUSY,
 	TIMER_IDLE_BETWEEN_CYCLES, //after cycle need to wait (50us for timer2) to start another
 
 }Ws2812b_setLed_flag;
-
 
 typedef struct
 {
@@ -45,9 +43,6 @@ extern Timer timer2;
 
 uint8_t Ws2812b_setLed(Ws2812b_Pixel *pixel, uint16_t cnt);
 void BitReversalGRB(Ws2812b_Pixel *pix, uint16_t cnt);
-void Interrupt_Setup();
-void GPIOA_Setup();
-void TIM1_Setup();
-void TIM2_Setup();
+void TIM2_IRQHandler_RGB();
 
 #endif /* WS2812B_WS2812B_H_ */

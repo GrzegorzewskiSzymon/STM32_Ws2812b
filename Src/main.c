@@ -2,8 +2,11 @@
 #include "stm32g431xx.h"
 #include "../Inc/Libraries/Ws2812b/ws2812b.h"
 #include "../Inc/Libraries/Ws2812b/effects.h"
-#include "../Inc/Libraries/Sysclk/sysclk.h"
-#include "../Inc/Libraries/Utils/utils.h"
+#include "../Inc/Libraries/RegistersConfig/RegistersConfig.h"
+void Systick_Setup();
+void Systick_Check();
+
+extern uint64_t ms;//reference time counted from the beginning#include "../Inc/Libraries/RegistersConfig/RegistersConfig.h"
 
 Ws2812b_Pixel led[100];
 Ws2812b_Pixel colors[8];
@@ -25,15 +28,9 @@ int main(void)
     }
 
 	Ws2812b_setLed(led, 8);//reset led strip
-    uint64_t time = ms;
 	while(1)
 	{
-		Systick_Check();//Need to put this in IRQ
-		if(ms - time > 50)
-		{
-			Rainbow(led);
-			time = ms;
-		}
+		Rainbow(led);
 	}
 
 }
