@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include "stm32g431xx.h"
 #include "../Ws2812b/ws2812b.h"
+#include "RegistersConfig.h"
 
 void ClockFrequency_Setup()
 {
@@ -34,8 +35,8 @@ void ClockFrequency_Setup()
 
 
 	                        //PLLR = 2 by default
-	RCC->PLLCFGR |= (85<<8);//PLLN = 85
-	RCC->PLLCFGR |= (5<<4); //PLLM = 6
+	RCC->PLLCFGR |= (17<<8);//PLLN = 17
+	RCC->PLLCFGR |= (1<<4); //PLLM = 2
 	RCC->PLLCFGR |= (3<<0); //PLL SRC
 	RCC->PLLCFGR |= (1<<24);//Main PLL clock selected
 
@@ -65,7 +66,6 @@ void ClockFrequency_Setup()
 
 void Interrupt_Setup()
 {
-	NVIC_EnableIRQ(TIM2_IRQn);    //Enable interrupt from TIM2
 	NVIC_EnableIRQ(SysTick_IRQn); //Enable interrupt from Systick
 }
 
@@ -74,47 +74,91 @@ void GPIOA_Setup()
 	//Enable peripheries AHB2
 	RCC->AHB2ENR |= 1 ;//bit0 is responsible for GPIOA
 
-	//PA5
-	GPIOA->MODER =  0xABFFF7FF;// MODE5[0;1] -> General purpose output mode
+	//
+	//SPI 1 - WS2812b
+	//
 
-	//PA8 as TIM1_CH1
-	GPIOA->MODER &= ~(1<<16); //  MODE8 [10]   -> Alternate function mode
-	GPIOA->AFR[1] |= (6<<0);  //  AFSEL1[0001] -> AF1
-	GPIOA->OSPEEDR |= (1<<16);
+	//PA5 as SCK
+	GPIOA->MODER &= ~(1 << 10); //Alternate function mode
+	GPIOA->AFR[0] |= (5 << 20); //AFSEL5[0101] -> AF5
+	GPIOA->OSPEEDR |= GPIO_OSPEEDR_OSPEED5_0; //Medium Speed
 
-}
+	//PA6 as MISO
+	GPIOA->MODER &= ~(GPIO_MODER_MODER6_0);
+	GPIOA->AFR[0] |= (5 << GPIO_AFRL_AFSEL6_Pos);
 
-void TIM1_Setup()
-{
-	 RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;//Enable clock
-
-	 TIM1->ARR = 20; /* Set the Autoreload value */
-	 TIM1->CCR1 = 13; /* Set the Pulse value */
-	 TIM1->PSC = 9; /* Set the Prescaler value */
-//	 TIM1->RCR = 10 - 1; /* Set the Repetition counter value */
-	 TIM1->CR1 |= TIM_CR1_OPM; /* Select the OPM Mode */
-	 TIM1->CCMR1 |= (6<<TIM_CCMR1_OC1M_Pos);//PWM Mode 1
-	 TIM1->CCER = TIM_CCER_CC1E; /* Enable the Compare output channel 1 */
-	 TIM1->CCER |= (1<<TIM_CCER_CC1P_Pos);//inverting pin output
-	 TIM1->BDTR |= TIM_BDTR_MOE; //Main output enable
-	 TIM1->EGR |= (1<<TIM_EGR_UG_Pos);
-
-	 //Slave mode selection [SMS]
-//	 TIM1->SMCR |= (6<<0); /* Trigger Mode - The counter starts at a rising edge of the trigger tim_trgi
-//	 (but it is not reset). Only the start of the counter is controlled.*/
-
-	 //Trigger selection
-//	 TIM1->SMCR |= (1<<4);// Internal Trigger 1 (tim_itr1)
+	//PA7 as MOSI
+	GPIOA->MODER &= ~(GPIO_MODER_MODER7_0);
+	GPIOA->AFR[0] |= (5 << GPIO_AFRL_AFSEL7_Pos);
 
 }
 
 void Systick_Setup()
 {
-	SysTick->LOAD = (uint32_t)170000;                //The value which will be decrementing, 24bit value
+	SysTick->LOAD = (uint32_t)102000;                //The value which will be decrementing, 24bit value
 	SysTick->VAL = 0;                              //(undefined on reset)
  	SysTick->CTRL  =  (SysTick_CTRL_CLKSOURCE_Msk) //Processor clock (AHB)
  				   |  (SysTick_CTRL_ENABLE_Msk)    //Enables the counter
  				   |  (SysTick_CTRL_TICKINT_Msk);  //Exception request
+}
+
+//
+// SPI 1 - WS2812b
+//
+
+void Spi1_Setup()
+{
+	RCC->APB2ENR |= RCC_APB2ENR_SPI1EN;
+										//MSB first (by default)
+										//Clock polarity to 0 when idle (by default)
+										//The first clock transition is the first data capture edge (by default)
+										//Data size 8-bit (by default)
+										//Motorola frame format (by default)
+										//No NSS pulse (by default)
+	SPI1->CR1 |= SPI_CR1_MSTR;			//Master configuration
+	SPI1->CR1 |= (3<<SPI_CR1_BR_Pos);	//fPCLK/16 = 6Mhz
+	SPI1->CR1 |= (1<<8) | (1<<9);  		//Software Slave Management
+	SPI1->CR2 = 0;
+}
+
+static void Spi1_ON()
+{
+	SPI1->CR1 |=  SPI_CR1_SPE;
+}
+
+static void Spi1_OFF()
+{
+	SPI1->CR1 &=  ~SPI_CR1_SPE;
+
+	//PA7 as GPIO to force it LOW
+	GPIOA->MODER |=  (GPIO_MODER_MODE7_Msk);
+	GPIOA->MODER &= ~(GPIO_MODER_MODE7_1);
+	GPIOA->BSRR  |=  (1<<GPIO_BSRR_BR7_Pos);
+
+	//PA7 as MOSI
+	GPIOA->MODER |=  (GPIO_MODER_MODE7_Msk);
+	GPIOA->MODER &= ~(GPIO_MODER_MODER7_0);
+	GPIOA->AFR[0] |= (5 << GPIO_AFRL_AFSEL7_Pos);
+}
+
+void Spi1_Send(uint8_t *byte, uint32_t length)
+{
+	Spi1_ON();
+    while (length > 0U)
+    {
+    	//not sure if necessary
+    	if (((SPI1->SR)&(1<<1)))//Wait for TXE bit to set -> This will indicate that the buffer is empty
+    	{
+    		*((volatile uint8_t *) &SPI1->DR) = (*byte);//Load the data into the Data Register
+    		byte++;
+    		length--;
+    	}
+    }
+
+    //not sure if necessary
+	//Wait for BSY bit to Reset -> This will indicate that SPI is not busy in communication
+	while (((SPI1->SR)&(1<<7))) {};
+    Spi1_OFF();
 }
 
 uint64_t ms;
@@ -122,35 +166,3 @@ void SysTick_Handler()
 {
 	ms++;
 }
-
-
-void TIM2_IRQHandler()
-{
-	TIM2_IRQHandler_RGB();
-}
-
-void TIM2_Setup()
-{
-	RCC->APB1ENR1 |= (1<<0); //TIM2 clock enable
-
-	//TIM2_CH1 is PA0 in AF1
-	TIM2->CCMR1 |= (6<<4);  //OC1M[0;1;1;0] -> PWM mode 1
-
-	/*Frq = [CLK/(PSC+1)]/[ARR]
-	 * ~708kHz
-	 * */
-	TIM2->PSC = 9;
-	TIM2->CCR1 = 9;
-	TIM2->CNT =  0;
-	TIM2->ARR =  24;
-
-	TIM2->CCER |= (1<<0);//Capture/Compare 1 output enable
-
-	//Master mode selection
-	TIM2->CR2 |= (4<<4); //Compare - tim_oc1refc signal is used as trigger output (tim_trgo)
-
-	TIM2->DIER |= (1<<TIM_DIER_UIE_Pos);//Update interrupt enable
-}
-
-
-

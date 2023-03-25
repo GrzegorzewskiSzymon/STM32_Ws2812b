@@ -11,11 +11,10 @@
 void ClockFrequency_Setup();
 void Interrupt_Setup();
 void GPIOA_Setup();
-void TIM1_Setup();
-void TIM2_Setup();
 void Systick_Setup();
-void Systick_Check();
 
+void Spi1_Setup();
+void Spi1_Send(uint8_t *byte, uint32_t length);
 extern uint64_t ms;//reference time counted from the beginning
 
 #endif /* LIBRARIES_REGISTERSCONFIG_REGISTERSCONFIG_H_ */

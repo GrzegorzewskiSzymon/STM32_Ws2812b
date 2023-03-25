@@ -24,21 +24,13 @@ void Rainbow_SetupColors(Ws2812b_Pixel *color)
 
 void Rainbow(Ws2812b_Pixel *pixel)
 {
-	//fast way to check if timer is ready
-	if( (TIM2->CR1 & TIM_CR1_CEN) || ((timer2.flag == TIMER_IDLE_BETWEEN_CYCLES) && (ms - timer2.ms_end_of_cycle < 1)) )
-	{
-		return;
-	}
-	timer2.flag = TIMER_READY;
-
-
-	static uint8_t j = 1;
+	static uint8_t j = 0;
 	static uint8_t k = 1;
-    //shift all vallues by one led
+    //shift all values by one led
     uint8_t i=0;
     for(i=LED_CNT; i>1; i--)
-        led[i-1]=led[i-2];
-    //change colour when colourlength is reached
+        pixel[i-1]=pixel[i-2];
+    //change color when colorlength is reached
     if(k>COLORLENGTH)
     {
         j++;
@@ -53,23 +45,12 @@ void Rainbow(Ws2812b_Pixel *pixel)
     //loop colors
 
     //fade red
-    if(pixel[0].r<(colors[j].r-FADE))
-        pixel[0].r+=FADE;
-
-    if(pixel[0].r>(colors[j].r+FADE))
-        pixel[0].r-=FADE;
-
-    if(pixel[0].g<(colors[j].g-FADE))
-        pixel[0].g+=FADE;
-
-    if(pixel[0].g>(colors[j].g+FADE))
-        pixel[0].g-=FADE;
-
-    if(pixel[0].b<(colors[j].b-FADE))
-        pixel[0].b+=FADE;
-
-    if(pixel[0].b>(colors[j].b+FADE))
-        pixel[0].b-=FADE;
+    if(pixel[0].r<(colors[j].r-FADE))  pixel[0].r+=FADE;
+    if(pixel[0].r>(colors[j].r+FADE))  pixel[0].r-=FADE;
+    if(pixel[0].g<(colors[j].g-FADE))  pixel[0].g+=FADE;
+    if(pixel[0].g>(colors[j].g+FADE))  pixel[0].g-=FADE;
+    if(pixel[0].b<(colors[j].b-FADE))  pixel[0].b+=FADE;
+    if(pixel[0].b>(colors[j].b+FADE))  pixel[0].b-=FADE;
 
     Ws2812b_setLed(pixel,LED_CNT);
 }
